@@ -177,6 +177,68 @@ function VideoConferenceComponent(props: {
     );
   }, []);
 
+  const [recording, setRecording] = React.useState(false);
+  const [mediaRecorder, setMediaRecorder] = React.useState<MediaRecorder | null>(null);
+  const [recordedChunks, setRecordedChunks] = React.useState<Blob[]>([]);
+
+  const handleRecordClick = () => {
+    if (!recording) {
+      startRecording();
+    } else {
+      stopRecording();
+    }
+  };
+
+  const startRecording = () => {
+    const localParticipant = room.localParticipant;
+
+    if (!localParticipant) {
+      alert('No local participant found');
+      return;
+    }
+
+    const mediaStream = new MediaStream();
+
+    localParticipant.trackPublications.forEach((trackPublication) => {
+      const track = trackPublication.track;
+      if (track && track.mediaStreamTrack) {
+        mediaStream.addTrack(track.mediaStreamTrack);
+      }
+    });
+
+    if (mediaStream.getTracks().length === 0) {
+      alert('No audio or video tracks available for recording.');
+      return;
+    }
+
+    const recorder = new MediaRecorder(mediaStream);
+    recorder.ondataavailable = (event) => {
+      if (event.data.size > 0) {
+        setRecordedChunks((prev) => [...prev, event.data]);
+      }
+    };
+
+    recorder.onstop = () => {
+      const blob = new Blob(recordedChunks, { type: 'video/webm' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'recording.webm';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    };
+
+    recorder.start();
+    setMediaRecorder(recorder);
+    setRecording(true);
+  };
+
+  const stopRecording = () => {
+    mediaRecorder?.stop();
+    setRecording(false);
+  };
+
   return (
     <>
       <LiveKitRoom
@@ -195,6 +257,22 @@ function VideoConferenceComponent(props: {
           chatMessageFormatter={formatChatMessageLinks}
           SettingsComponent={SHOW_SETTINGS_MENU ? SettingsMenu : undefined}
         />
+        <button
+          onClick={handleRecordClick}
+          className="m-5"
+          style={{
+            position: 'absolute',
+            bottom: '20px',
+            right: '20px',
+            background: recording ? 'red' : 'green',
+            color: 'white',
+            padding: '10px 20px',
+            borderRadius: '5px',
+            cursor: 'pointer',
+          }}
+        >
+          {recording ? 'Stop Recording' : 'Start Recording'}
+        </button>
         <DebugMode />
         <RecordingIndicator />
       </LiveKitRoom>
