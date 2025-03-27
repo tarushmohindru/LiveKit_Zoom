@@ -1,4 +1,4 @@
-import { EgressClient, EncodedFileOutput, S3Upload } from 'livekit-server-sdk';
+import { EgressClient, EncodedFileOutput, EncodingOptionsPreset, S3Upload, SegmentedFileOutput } from 'livekit-server-sdk';
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET(req: NextRequest) {
@@ -31,24 +31,26 @@ export async function GET(req: NextRequest) {
     }
 
     // Configure S3 storage for the recording
-    const fileOutput = new EncodedFileOutput({
+    const fileOutput = {
+      file: new EncodedFileOutput({
       filepath: `${new Date().toISOString()}-${roomName}.mp4`,
       output: {
         case: 's3',
-        value: new S3Upload({
+        value: {
           endpoint: S3_ENDPOINT!,
           accessKey: S3_KEY_ID!,
           secret: S3_KEY_SECRET!,
           region: S3_REGION!,
           bucket: S3_BUCKET!,
-        }),
+        },
       },
-    });
+    })
+    }
 
     await egressClient.startRoomCompositeEgress(
       roomName,
-      { file: fileOutput },
-      { layout: 'speaker' },
+      fileOutput,
+      { layout: 'speaker', encodingOptions: EncodingOptionsPreset.H264_1080P_30, audioOnly: false },
     );
 
     return new NextResponse('Recording started', { status: 200 });

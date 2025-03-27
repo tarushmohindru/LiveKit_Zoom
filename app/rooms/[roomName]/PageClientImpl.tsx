@@ -10,6 +10,7 @@ import {
   LiveKitRoom,
   LocalUserChoices,
   PreJoin,
+  RoomName,
   VideoConference,
 } from '@livekit/components-react';
 import {
@@ -21,7 +22,7 @@ import {
   DeviceUnsupportedError,
   RoomConnectOptions,
 } from 'livekit-client';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import React from 'react';
 
 const CONN_DETAILS_ENDPOINT =
@@ -189,53 +190,59 @@ function VideoConferenceComponent(props: {
     }
   };
 
-  const startRecording = () => {
-    const localParticipant = room.localParticipant;
+  const startRecording = async () => {
+    // const localParticipant = room.localParticipant;
 
-    if (!localParticipant) {
-      alert('No local participant found');
-      return;
-    }
+    // if (!localParticipant) {
+    //   alert('No local participant found');
+    //   return;
+    // }
 
-    const mediaStream = new MediaStream();
+    // const mediaStream = new MediaStream();
 
-    localParticipant.trackPublications.forEach((trackPublication) => {
-      const track = trackPublication.track;
-      if (track && track.mediaStreamTrack) {
-        mediaStream.addTrack(track.mediaStreamTrack);
-      }
-    });
+    // localParticipant.trackPublications.forEach((trackPublication) => {
+    //   const track = trackPublication.track;
+    //   if (track && track.mediaStreamTrack) {
+    //     mediaStream.addTrack(track.mediaStreamTrack);
+    //   }
+    // });
 
-    if (mediaStream.getTracks().length === 0) {
-      alert('No audio or video tracks available for recording.');
-      return;
-    }
+    // if (mediaStream.getTracks().length === 0) {
+    //   alert('No audio or video tracks available for recording.');
+    //   return;
+    // }
 
-    const recorder = new MediaRecorder(mediaStream);
-    recorder.ondataavailable = (event) => {
-      if (event.data.size > 0) {
-        setRecordedChunks((prev) => [...prev, event.data]);
-      }
-    };
+    // const recorder = new MediaRecorder(mediaStream);
+    // recorder.ondataavailable = (event) => {
+    //   if (event.data.size > 0) {
+    //     setRecordedChunks((prev) => [...prev, event.data]);
+    //   }
+    // };
 
-    recorder.onstop = () => {
-      const blob = new Blob(recordedChunks, { type: 'video/webm' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'recording.webm';
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-    };
+    // recorder.onstop = () => {
+    //   const blob = new Blob(recordedChunks, { type: 'video/webm' });
+    //   const url = URL.createObjectURL(blob);
+    //   const a = document.createElement('a');
+    //   a.href = url;
+    //   a.download = 'recording.webm';
+    //   document.body.appendChild(a);
+    //   a.click();
+    //   document.body.removeChild(a);
+    // };
 
-    recorder.start();
-    setMediaRecorder(recorder);
+    // recorder.start();
+    // setMediaRecorder(recorder);
+    // setRecording(true);
     setRecording(true);
+    await fetch(`/api/record/start?roomName=${props.connectionDetails.roomName}`, {
+      method: 'GET',
+    });
   };
 
-  const stopRecording = () => {
-    mediaRecorder?.stop();
+  const stopRecording = async () => {
+    fetch(`/api/record/stop?roomName=${props.connectionDetails.roomName}`, {
+      method: "GET"
+    })
     setRecording(false);
   };
 
